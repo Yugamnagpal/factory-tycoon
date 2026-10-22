@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Tycoon: The Profit Maximizer</title>
+<style>
+:root{--navy:#142B4A;--teal:#087E8B;--grey:#F3F6FA;--white:#FFFFFF;--text:#263445;
+  --ok:#23835B;--bad:#C2414B;--line:#D3DCE8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--grey);color:var(--text);
+  font:16px/1.5 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header.top{background:var(--navy);color:var(--white);padding:22px 0}
+header.top h1{margin:0;font-size:1.55rem;font-weight:650;letter-spacing:.2px}
+header.top p{margin:4px 0 0;color:#B9C7DA;font-size:.9rem}
+main{padding:22px 0 48px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:var(--white);color:var(--navy);padding:9px 20px;
+  border-radius:6px;font:inherit;font-weight:600;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.brief{margin:0 0 16px;max-width:75ch}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:1.1rem;color:var(--navy)}
+.prod{padding:12px 0;border-top:1px solid var(--line)}
+.prod:first-of-type{border-top:0;padding-top:0}
+.prod .name{font-weight:650;color:var(--navy)}
+.prod .meta{font-size:.85rem;color:#5B6B80}
+.ctl{display:flex;align-items:center;gap:8px;margin-top:8px}
+.ctl button{width:38px;height:38px;border:1px solid var(--teal);background:var(--white);color:var(--teal);
+  border-radius:6px;font-size:1.2rem;cursor:pointer}
+.ctl button:hover:not(:disabled){background:var(--teal);color:var(--white)}
+.ctl input[type=number]{width:72px;height:38px;text-align:center;font:inherit;border:1px solid var(--line);border-radius:6px}
+.ctl input[type=range]{flex:1;accent-color:var(--teal);min-width:80px}
+button:disabled,input:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.profit{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.profit .lbl{font-size:.9rem;color:#5B6B80}
+.big{font-size:2.1rem;font-weight:700;color:var(--navy)}
+.bar{margin-bottom:12px}
+.bar .row{display:flex;justify-content:space-between;font-size:.9rem}
+.track{height:12px;background:var(--grey);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:4px}
+.fill{height:100%;background:var(--teal);transition:width .15s}
+.fill.full{background:var(--navy)}.fill.over{background:var(--bad)}
+.tag{font-size:.78rem;font-weight:650}
+.tag.over{color:var(--bad)}.tag.full{color:var(--navy)}
+.banner{padding:10px 12px;border-radius:6px;font-weight:600;background:var(--grey);border:1px solid var(--line)}
+.banner.ok{background:#E8F4EE;color:var(--ok);border-color:#BFE0CF}
+.banner.bad{background:#F9E9EA;color:var(--bad);border-color:#EBC3C6}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 16px}
+.btn{padding:11px 20px;border-radius:6px;border:1px solid var(--navy);font:inherit;font-weight:650;cursor:pointer;
+  background:var(--white);color:var(--navy)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:var(--white)}
+.btn.dark{background:var(--navy);color:var(--white)}
+.hidden{display:none}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:8px 0}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--grey);color:var(--navy)}
+.good{color:var(--ok);font-weight:650}.badtxt{color:var(--bad);font-weight:650}
+.math p{margin:8px 0;max-width:80ch}
+pre{white-space:pre-wrap;font-size:.85rem;background:var(--grey);padding:10px;border-radius:6px}
+footer{font-size:.8rem;color:#5B6B80;margin-top:8px}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>Factory Tycoon: The Profit Maximizer</h1>
+  <p>Decision Science, IIM Ranchi. Yugam Nagpal, Roll No. XW037-26 Winter</p>
+</div></header>
+<main class="wrap">
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Levels"></nav>
+  <p class="brief" id="brief"></p>
+  <div class="grid">
+    <section class="card" aria-labelledby="hPlan"><h2 id="hPlan">Production plan (whole units)</h2><div id="products"></div></section>
+    <section class="card" aria-labelledby="hDash"><h2 id="hDash">Factory dashboard</h2>
+      <div class="profit"><span class="lbl">Contribution profit</span><span class="big" id="profit">$0</span></div>
+      <div id="bars"></div>
+      <div class="banner" id="banner" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="submit">Submit Plan</button>
+    <button class="btn dark" id="reveal">Reveal optimizer solution</button>
+    <button class="btn" id="reset">Clear quantities</button>
+    <button class="btn" id="replay">Replay level</button>
+    <button class="btn" id="restart">Restart game</button>
+  </div>
+  <section class="card hidden" id="result" aria-live="polite"></section>
+  <section class="card hidden math" id="revealPanel"></section>
+  <details class="card"><summary><b>Self-tests</b> (optimizer versus brute force and the supplied benchmarks)</summary>
+    <p><button class="btn" id="runTests">Run self-tests</button></p><pre id="testOut"></pre></details>
+  <footer>Maximize P = 50x + 70y + 60z subject to three resource limits, with x, y, z whole numbers.
+    The optimizer is an exact branch-and-bound search; nothing is hardcoded.</footer>
+</main>
+<script>
+/* ===================== MODEL AND OPTIMIZER (no DOM access) ===================== */
+const NAMES = ['Standard Kit (x)', 'Premium Kit (y)', 'Advanced Kit (z)'];
+const C = [50, 70, 60];                                   // contribution per unit
+const A = [[2, 3, 2], [1, 2, 3], [3, 2, 4]];              // rows: labour, machine, material
+const RES = ['Labour hours', 'Machine hours', 'Material units'];
+const LEVELS = [{ name: 'Level 1', cap: [120, 100, 120] }, { name: 'Level 2', cap: [130, 100, 120] }];
+const G = 10;                                             // gcd of the profit coefficients
+
+const dot = (a, q) => a[0] * q[0] + a[1] * q[1] + a[2] * q[2];
+const usage = q => A.map(r => dot(r, q));
+const profit = q => dot(C, q);
+const violations = (q, cap) => usage(q).map((u, i) => ({ i, over: u - cap[i] })).filter(v => v.over > 0);
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = gcd(n, d) || 1; return d / g === 1 ? String(n / g) : (n / g) + '/' + (d / g); };
+
+function det3(m) {
+  return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+       - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+       + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+}
+
+/* Exact LP relaxation over the box lo <= (x,y,z) <= hi plus the three resource rows.
+   The polytope is bounded, so an optimum sits at a vertex: try every set of 3 rows,
+   solve by Cramer's rule in integers, keep feasible vertices, and compare values exactly. */
+function solveLP(cap, lo, hi) {
+  const rows = A.map((a, i) => ({ a, b: cap[i] }));
+  for (let j = 0; j < 3; j++) {
+    const e = [0, 0, 0], f = [0, 0, 0]; e[j] = -1; f[j] = 1;
+    rows.push({ a: e, b: -lo[j] }, { a: f, b: hi[j] });
+  }
+  let best = null;
+  for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) for (let k = j + 1; k < rows.length; k++) {
+    const M = [rows[i].a, rows[j].a, rows[k].a], b = [rows[i].b, rows[j].b, rows[k].b];
+    let D = det3(M); if (D === 0) continue;
+    let N = [0, 1, 2].map(c => det3(M.map((r, ri) => r.map((v, ci) => (ci === c ? b[ri] : v)))));
+    if (D < 0) { D = -D; N = N.map(v => -v); }
+    if (!rows.every(r => dot(r.a, N) <= r.b * D)) continue;      // vertex must satisfy every row
+    const num = dot(C, N);
+    if (!best || num * best.den > best.num * D) best = { num, den: D, N, value: num / D };
+  }
+  return best;                                                   // null means the node is infeasible
+}
+
+/* Branch and bound for the integer program: depth-first, LP-relaxation bounds, most fractional variable. */
+function solveInteger(cap) {
+  const hi0 = [0, 1, 2].map(j => Math.min(...A.map((r, i) => Math.floor(cap[i] / r[j]))));
+  const stack = [{ lo: [0, 0, 0], hi: hi0 }];
+  let best = { profit: -1, q: null }, nodes = 0, lpSolves = 0, pruned = 0, root = null;
+  while (stack.length) {
+    const nd = stack.pop(); nodes++;
+    const s = solveLP(cap, nd.lo, nd.hi); lpSolves++;
+    if (!s) { pruned++; continue; }                              // infeasible subproblem
+    if (!root) root = { N: s.N, den: s.den, num: s.num, value: s.value };
+    if (Math.floor(s.value / G + 1e-9) * G <= best.profit) { pruned++; continue; }   // cannot beat incumbent
+    let j = -1, far = 0;
+    for (let v = 0; v < 3; v++) {
+      if (s.N[v] % s.den === 0) continue;                        // already whole
+      const p = s.N[v] / s.den, d = Math.abs(p - Math.round(p));
+      if (d > far) { far = d; j = v; }
+    }
+    if (j < 0) { best = { profit: Math.round(s.value), q: s.N.map(v => v / s.den) }; continue; }   // new incumbent
+    const fl = Math.floor(s.N[j] / s.den);
+    const up = { lo: nd.lo.slice(), hi: nd.hi.slice() }, dn = { lo: nd.lo.slice(), hi: nd.hi.slice() };
+    up.lo[j] = fl + 1; dn.hi[j] = fl;
+    stack.push(up, dn);
+  }
+  return { q: best.q, profit: best.profit, nodes, lpSolves, pruned, root, hi0 };
+}
+
+/* Independent exhaustive search, used only to cross-check the optimizer. */
+function bruteForce(cap) {
+  const hi = [0, 1, 2].map(j => Math.min(...A.map((r, i) => Math.floor(cap[i] / r[j]))));
+  let bestP = -1, bestQ = null;
+  for (let x = 0; x <= hi[0]; x++) for (let y = 0; y <= hi[1]; y++) for (let z = 0; z <= hi[2]; z++) {
+    const q = [x, y, z];
+    if (violations(q, cap).length === 0 && profit(q) > bestP) { bestP = profit(q); bestQ = q; }
+  }
+  return { profit: bestP, q: bestQ };
+}
+
+function runSelfTests() {
+  const out = []; let pass = 0;
+  const check = (name, ok, detail) => {
+    out.push((ok ? 'PASS  ' : 'FAIL  ') + name + (detail ? '  [' + detail + ']' : ''));
+    if (ok) pass++;
+  };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const bench = [{ q: [3, 30, 12], p: 2970, u: [120, 99, 117] }, { q: [5, 34, 9], p: 3170, u: [130, 100, 119] }];
+  LEVELS.forEach((L, i) => {
+    const o = solveInteger(L.cap), b = bruteForce(L.cap);
+    check(L.name + ': optimizer profit equals brute force', o.profit === b.profit, o.profit + ' vs ' + b.profit);
+    check(L.name + ': optimizer plan equals supplied benchmark', same(o.q, bench[i].q), JSON.stringify(o.q));
+    const bq = bench[i].q;
+    check(L.name + ': benchmark profit and resource use re-computed',
+      profit(bq) === bench[i].p && same(usage(bq), bench[i].u), profit(bq) + ' ' + usage(bq));
+    check(L.name + ': LP relaxation bound is at least the integer optimum', o.root.value >= o.profit, o.root.value.toFixed(2));
+    check(L.name + ': optimal plan is feasible', violations(o.q, L.cap).length === 0);
+  });
+  check('Infeasible plan (10,30,12) rejected at Level 1', violations([10, 30, 12], LEVELS[0].cap).length > 0);
+  check('Feasible plan (0,0,0) accepted', violations([0, 0, 0], LEVELS[0].cap).length === 0);
+  let seed = 12345, bad = 0;
+  const rnd = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  for (let t = 0; t < 150; t++) {
+    const cap = [20 + rnd(121), 20 + rnd(121), 20 + rnd(121)];
+    if (solveInteger(cap).profit !== bruteForce(cap).profit) bad++;
+  }
+  check('150 random capacity sets: optimizer equals brute force', bad === 0, bad + ' mismatches');
+  out.push(pass + ' of ' + out.length + ' checks passed');
+  return { pass, total: out.length - 1, text: out.join('\n') };
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.FT = { A, C, LEVELS, usage, profit, violations, solveLP, solveInteger, bruteForce, runSelfTests };
+}
+
+/* ===================== USER INTERFACE ===================== */
+if (typeof document !== 'undefined') (function () {
+  const $ = id => document.getElementById(id);
+  const money = (n, d) => '$' + Number(n).toLocaleString('en-US',
+    { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+  const fresh = () => ({ q: [0, 0, 0], attempts: 0, rejected: 0, best: null, revealed: false, result: '' });
+  const S = LEVELS.map(fresh);
+  const OPT = [];
+  let cur = 0;
+  const opt = i => OPT[i] || (OPT[i] = solveInteger(LEVELS[i].cap));
+  const numInputs = '#products input[type=number]', rangeInputs = '#products input[type=range]';
+
+  $('tabs').innerHTML = LEVELS.map((L, i) =>
+    `<button class="tab" role="tab" data-lv="${i}">${L.name}</button>`).join('');
+  $('products').innerHTML = NAMES.map((n, j) => `<div class="prod"><div class="name">${n}</div>
+    <div class="meta">Contribution $${C[j]} per unit.
+      Uses ${A[0][j]} labour h, ${A[1][j]} machine h, ${A[2][j]} material units.</div>
+    <div class="ctl"><button data-j="${j}" data-d="-1" aria-label="Decrease ${n}">&minus;</button>
+    <input type="number" min="0" step="1" inputmode="numeric" data-j="${j}" aria-label="${n} quantity">
+    <button data-j="${j}" data-d="1" aria-label="Increase ${n}">+</button>
+    <input type="range" min="0" value="0" step="1" data-j="${j}" aria-label="${n} slider"></div></div>`).join('');
+  $('bars').innerHTML = RES.map((r, i) => `<div class="bar">
+    <div class="row"><span>${r}</span><span id="bt${i}"></span></div>
+    <div class="track"><div class="fill" id="bf${i}"></div></div></div>`).join('');
+
+  function setQty(j, v) {
+    const s = S[cur]; if (s.revealed) return;
+    s.q[j] = Math.max(0, Math.min(500, Math.floor(Number.isFinite(v) ? v : 0)));
+    render();
+  }
+
+  function tagFor(over, used, cap) {
+    if (over > 0) return `<span class="tag over">over by ${over}</span>`;
+    if (used === cap) return '<span class="tag full">binding</span>';
+    return `<span class="tag">${-over} unused</span>`;
+  }
+
+  function render() {
+    const L = LEVELS[cur], s = S[cur], q = s.q, u = usage(q), o = opt(cur);
+    document.querySelectorAll('.tab').forEach((t, i) => t.setAttribute('aria-selected', i === cur));
+    $('brief').textContent = `${L.name}: capacities are ${L.cap[0]} labour hours, ${L.cap[1]} machine hours ` +
+      `and ${L.cap[2]} material units. Choose whole numbers of each kit to earn the highest total ` +
+      'contribution without exceeding any capacity.';
+    document.querySelectorAll(numInputs).forEach(e => { e.value = q[e.dataset.j]; e.disabled = s.revealed; });
+    document.querySelectorAll(rangeInputs).forEach(e => {
+      e.max = o.hi0[e.dataset.j]; e.value = Math.min(q[e.dataset.j], e.max); e.disabled = s.revealed;
+    });
+    document.querySelectorAll('#products button').forEach(b => { b.disabled = s.revealed; });
+    $('profit').textContent = money(profit(q));
+    u.forEach((used, i) => {
+      const cap = L.cap[i], f = $('bf' + i), over = used - cap;
+      f.style.width = Math.min(100, used / cap * 100) + '%';
+      f.className = 'fill' + (over > 0 ? ' over' : used === cap ? ' full' : '');
+      $('bt' + i).innerHTML = `${used} / ${cap} (${(used / cap * 100).toFixed(0)}%) ` + tagFor(over, used, cap);
+    });
+    const v = violations(q, L.cap), b = $('banner');
+    if (v.length) {
+      b.className = 'banner bad';
+      b.textContent = 'Infeasible: ' + v.map(x => `${RES[x.i]} exceed capacity by ${x.over}`).join('; ') + '.';
+    } else if (!profit(q)) {
+      b.className = 'banner'; b.textContent = 'Set quantities to begin. All capacities are currently unused.';
+    } else {
+      b.className = 'banner ok'; b.textContent = 'Feasible: the plan is within all three capacities.';
+    }
+    $('submit').disabled = s.revealed;
+    const r = $('result'); r.classList.toggle('hidden', !s.result); r.innerHTML = s.result;
+    $('revealPanel').classList.toggle('hidden', !s.revealed);
+    if (s.revealed) $('revealPanel').innerHTML = revealHTML();
+  }
+
+  function submitPlan() {
+    const L = LEVELS[cur], s = S[cur], q = s.q, o = opt(cur), v = violations(q, L.cap);
+    if (v.length) {
+      s.rejected++;
+      const lines = v.map(x => `${RES[x.i]}: ${usage(q)[x.i]} needed, ${L.cap[x.i]} available ` +
+        `(over by ${x.over})`).join('<br>');
+      s.result = `<h2>Plan rejected</h2><p class="badtxt">${lines}</p>
+        <p>An infeasible plan cannot be built, so it is not scored. Reduce production of the kits that
+        use the exceeded resource and submit again.</p>`;
+    } else {
+      s.attempts++; const p = profit(q); s.best = Math.max(s.best === null ? 0 : s.best, p);
+      const pct = p / o.profit * 100, gap = o.profit - p;
+      const rating = gap === 0 ? 'Optimal: your profit equals the integer optimum.' :
+        pct >= 98 ? 'Excellent' : pct >= 95 ? 'Very good' : pct >= 90 ? 'Good' : 'Room to improve';
+      s.result = `<h2>Plan accepted</h2><table><tr><th>Your profit</th><th>Optimal integer profit</th>
+        <th>Gap</th><th>Share of optimum</th></tr><tr><td class="${gap === 0 ? 'good' : ''}">${money(p)}</td>
+        <td>${money(o.profit)}</td><td>${money(gap)}</td><td>${pct.toFixed(1)}%</td></tr></table>
+        <p><b>${rating}</b> Attempts: ${s.attempts}. Best accepted profit: ${money(s.best)}.
+        Use "Reveal optimizer solution" to see the optimal plan and the mathematics.</p>`;
+    }
+    render();
+  }
+
+  function revealHTML() {
+    const L = LEVELS[cur], q = S[cur].q, o = opt(cur), r = o.root, uo = usage(o.q), uq = usage(q);
+    const ok = violations(q, L.cap).length === 0, gap = r.value - o.profit;
+    const pt = r.N.map(v => (v / r.den).toFixed(2)), fr = r.N.map(v => frac(v, r.den));
+    const bind = RES.filter((_, i) => uo[i] === L.cap[i]);
+    const slack = RES.map((n, i) => `${n}: ${L.cap[i] - uo[i]}`).join(', ');
+    const profitCell = `<td class="${ok ? '' : 'badtxt'}">${money(profit(q))}${ok ? '' : ' (infeasible)'}</td>`;
+    const rows = NAMES.map((n, j) => `<tr><td>${n}</td><td>${q[j]}</td><td>${o.q[j]}</td></tr>`).join('') +
+      `<tr><td><b>Profit</b></td>${profitCell}<td class="good">${money(o.profit)}</td></tr>` +
+      RES.map((n, i) => `<tr><td>${n} used (capacity ${L.cap[i]})</td>` +
+        `<td class="${uq[i] > L.cap[i] ? 'badtxt' : ''}">${uq[i]}</td><td>${uo[i]}</td></tr>`).join('');
+    const verdict = !ok ? 'Your current plan is infeasible, so it cannot be compared on profit.' :
+      profit(q) === o.profit ? 'Your plan matches the optimal profit.' :
+      `Your plan earns ${money(o.profit - profit(q))} less than the optimum.`;
+    return `<h2>Optimizer reveal: ${L.name}</h2>
+      <table><tr><th>Item</th><th>Your plan</th><th>Optimal integer plan</th></tr>${rows}</table>
+      <p><b>Comparison.</b> ${verdict}</p>
+      <p><b>Continuous LP relaxation</b> (whole-number requirement dropped; the root node of the search):
+      x = ${pt[0]} (${fr[0]}), y = ${pt[1]} (${fr[1]}), z = ${pt[2]} (${fr[2]}),
+      profit ${money(r.value, 2)} (${frac(r.num, r.den)}). Fractional kits cannot be built, so this is only an upper bound.</p>
+      <p><b>Integer optimum:</b> ${money(o.profit)}, an integrality gap of ${money(gap, 2)}
+      (${(gap / r.value * 100).toFixed(2)}% of the relaxed value).</p>
+      <p><b>Binding constraints at the integer optimum:</b> ${bind.length ? bind.join(', ') : 'none'}.
+      <b>Unused capacity:</b> ${slack}.</p>
+      <p><b>Algorithm:</b> branch and bound. It solved ${o.lpSolves} LP relaxations over ${o.nodes} nodes and
+      pruned ${o.pruned}. At each node it splits on the most fractional variable (x &le; k or x &ge; k + 1)
+      and discards any node whose bound, rounded down to a multiple of ${G}, cannot beat the best
+      whole-number plan found so far.</p>
+      <p>Press "Replay level" to try again.</p>`;
+  }
+
+  $('tabs').onclick = e => { const b = e.target.closest('.tab'); if (b) { cur = +b.dataset.lv; render(); } };
+  $('products').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (b) setQty(+b.dataset.j, S[cur].q[b.dataset.j] + +b.dataset.d);
+  });
+  $('products').addEventListener('input', e => {
+    const t = e.target, j = +t.dataset.j;
+    if (isNaN(j) || (t.type === 'number' && t.value === '')) return;
+    setQty(j, parseFloat(t.value));
+  });
+  $('products').addEventListener('change', e => { if (e.target.type === 'number') render(); });
+  $('submit').onclick = submitPlan;
+  $('reveal').onclick = () => {
+    S[cur].revealed = true; render(); $('revealPanel').scrollIntoView({ behavior: 'smooth' });
+  };
+  $('reset').onclick = () => { if (!S[cur].revealed) { S[cur].q = [0, 0, 0]; render(); } };
+  $('replay').onclick = () => { S[cur] = fresh(); render(); };
+  $('restart').onclick = () => { LEVELS.forEach((_, i) => { S[i] = fresh(); }); cur = 0; render(); };
+  $('runTests').onclick = () => { $('testOut').textContent = runSelfTests().text; };
+  render();
+})();
+</script>
+</body>
+</html>
